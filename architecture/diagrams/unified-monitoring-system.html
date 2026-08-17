@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DSG Unified Data Monitoring System</title>
+<style>
+:root {
+  --color-bg: #fafafa;
+  --color-surface: #ffffff;
+  --color-border: #e5e5e5;
+  --color-text: #1a1a1a;
+  --color-text-light: #666;
+  --color-primary: #2563eb;
+  --color-success: #16a34a;
+  --color-warning: #ea580c;
+  --color-error: #dc2626;
+  --color-info: #0891b2;
+  --color-accent: #7c3aed;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg: #0f0f0f;
+    --color-surface: #1a1a1a;
+    --color-border: #333;
+    --color-text: #f5f5f5;
+    --color-text-light: #999;
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-bg: #0f0f0f;
+  --color-surface: #1a1a1a;
+  --color-border: #333;
+  --color-text: #f5f5f5;
+  --color-text-light: #999;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  color: var(--color-primary);
+}
+
+.subtitle {
+  color: var(--color-text-light);
+  margin-bottom: 2rem;
+  font-size: 1.1rem;
+}
+
+.diagram-section {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.diagram-section h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  color: var(--color-primary);
+}
+
+svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.card h3 {
+  color: var(--color-primary);
+  margin-bottom: 0.75rem;
+}
+
+.card p {
+  color: var(--color-text-light);
+  font-size: 0.95rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.badge-success {
+  background: rgba(22, 163, 74, 0.1);
+  color: var(--color-success);
+}
+
+.badge-info {
+  background: rgba(8, 145, 178, 0.1);
+  color: var(--color-info);
+}
+
+.badge-warning {
+  background: rgba(234, 88, 12, 0.1);
+  color: var(--color-warning);
+}
+
+.code-block {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 1rem;
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 0.9rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.feature-list {
+  list-style: none;
+  margin: 1rem 0;
+}
+
+.feature-list li {
+  padding: 0.5rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.feature-list li:before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: var(--color-success);
+  font-weight: bold;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+th {
+  background: var(--color-bg);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+tr:hover {
+  background: var(--color-bg);
+}
+
+.flow-step {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: var(--color-bg);
+  border-radius: 6px;
+}
+
+.step-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--color-primary);
+  color: white;
+  border-radius: 50%;
+  font-weight: bold;
+  margin-right: 1rem;
+  flex-shrink: 0;
+}
+
+.step-content {
+  flex: 1;
+}
+
+.step-content strong {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.footer {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-light);
+  font-size: 0.9rem;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>DSG Unified Data Monitoring System</h1>
+  <p class="subtitle">Complete monitoring architecture for schema consistency and data sync health across unified Supabase</p>
+
+  <!-- System Architecture Diagram -->
+  <div class="diagram-section">
+    <h2>System Architecture Overview</h2>
+    <svg viewBox="0 0 1200 700" role="img" aria-label="DSG unified data monitoring system architecture">
+      <!-- Title -->
+      <text x="600" y="30" text-anchor="middle" font-size="18" font-weight="bold" fill="currentColor">
+        DSG Unified Data Monitoring Architecture
+      </text>
+
+      <!-- Monitoring Layer -->
+      <rect x="50" y="60" width="1100" height="80" rx="8" fill="currentColor" opacity="0.05" stroke="currentColor" stroke-width="2"/>
+      <rect x="60" y="70" width="260" height="60" rx="6" fill="currentColor" opacity="0.08" stroke="currentColor" stroke-width="1"/>
+      <text x="190" y="100" text-anchor="middle" font-size="12" font-weight="bold" fill="currentColor">Schema Validator</text>
+      <text x="190" y="115" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.7">(verify-schema.ts)</text>
+
+      <rect x="330" y="70" width="260" height="60" rx="6" fill="currentColor" opacity="0.08" stroke="currentColor" stroke-width="1"/>
+      <text x="460" y="100" text-anchor="middle" font-size="12" font-weight="bold" fill="currentColor">Data Sync Monitor</text>
+      <text x="460" y="115" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.7">(data-sync.ts)</text>
+
+      <rect x="600" y="70" width="260" height="60" rx="6" fill="currentColor" opacity="0.08" stroke="currentColor" stroke-width="1"/>
+      <text x="730" y="100" text-anchor="middle" font-size="12" font-weight="bold" fill="currentColor">Health Checker</text>
+      <text x="730" y="115" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.7">(health-checker.ts)</text>
+
+      <rect x="870" y="70" width="260" height="60" rx="6" fill="currentColor" opacity="0.08" stroke="currentColor" stroke-width="1"/>
+      <text x="1000" y="100" text-anchor="middle" font-size="12" font-weight="bold" fill="currentColor">Cross-Repo Validator</text>
+      <text x="1000" y="115" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.7">(validation.ts)</text>
+
+      <!-- API Layer -->
+      <rect x="50" y="180" width="1100" height="70" rx="8" fill="currentColor" opacity="0.05" stroke="currentColor" stroke-width="2"/>
+      <text x="600" y="200" text-anchor="middle" font-size="12" font-weight="bold" fill="currentColor">REST API Layer</text>
+      <text x="600" y="220" text-anchor="middle" font-size="11" fill="currentColor" opacity="0.8">GET /api/dsg/v1/monitoring/data-sync</text>
+      <text x="600" y="235" text-anchor="middle" font-size="11" fill="currentColor" opacity="0.8">POST /api/dsg/v1/monitoring/data-sync</text>
+
+      <!-- Connection arrows -->
+      <line x1="190" y1="130" x2="190" y2="180" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3,3"/>
+      <line x1="460" y1="130" x2="460" y2="180" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3,3"/>
+      <line x1="730" y1="130" x2="730" y2="180" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3,3"/>
+      <line x1="1000" y1="130" x2="1000" y2="180" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3,3"/>
+
+      <!-- Database Layer -->
+      <rect x="50" y="300" width="1100" height="120" rx="8" fill="currentColor" opacity="0.05" stroke="currentColor" stroke-width="2"/>
+      <text x="600" y="330" text-anchor="middle" font-size="14" font-weight="bold" fill="currentColor">Unified Supabase PostgreSQL Instance</text>
+      <text x="600" y="350" text-anchor="middle" font-size="11" fill="currentColor" opacity="0.8">Single Source of Truth - RLS Enforced - Org_id Scoped</text>
+
+      <rect x="70" y="365" width="130" height="40" rx="4" fill="currentColor" opacity="0.08" stroke="currentColor" stroke-width="1"/>
+      <text x="135" y="393" text-anchor="middle" font-size="10" font-weight="bold" fill="currentColor">organizations</text>
+
+      <rect x="220" y="365" width="130" height="40" rx="4" fill="currentColor" opacity="0.08" stroke="currentColor" stroke-width="1"/>
+      <text x="285" y="393" text-anchor="middle" font-size="10" font-weight="bold" fill="currentColor">users</text>
+
+      <rect x="370" y="365" width="130" height="40" rx="4" fill="currentColor" opacity="0.08" stroke="currentColor" stroke-width="1"/>
+      <text x="435" y="393" text-anchor="middle" font-size="10" font-weight="bold" fill="currentColor">agents</text>
+
+      <rect x="520" y="365" width="130" height="40" rx="4" fill="currentColor" opacity="0.08" stroke="currentColor" stroke-width="1"/>
+      <text x="585" y="393" text-anchor="middle" font-size="10" font-weight="bold" fill="currentColor">policies</text>
+
+      <rect x="670" y="365" width="130" height="40" rx="4" fill="currentColor" opacity="0.08" stroke="currentColor" stroke-width="1"/>
+      <text x="735" y="393" text-anchor="middle" font-size="10" font-weight="bold" fill="currentColor">executions</text>
+
+      <rect x="820" y="365" width="130" height="40" rx="4" fill="currentColor" opacity="0.08" stroke="currentColor" stroke-width="1"/>
+      <text x="885" y="393" text-anchor="middle" font-size="10" font-weight="bold" fill="currentColor">audit_logs</text>
+
+      <rect x="970" y="365" width="150" height="40" rx="4" fill="currentColor" opacity="0.08" stroke="currentColor" stroke-width="1"/>
+      <text x="1045" y="393" text-anchor="middle" font-size="10" font-weight="bold" fill="currentColor">...more tables</text>
+
+      <!-- Service Role Access -->
+      <line x1="600" y1="250" x2="600" y2="300" stroke="currentColor" stroke-width="2"/>
+      <text x="650" y="280" font-size="10" fill="currentColor" opacity="0.8">Service Role Keys</text>
+      <text x="650" y="295" font-size="10" fill="currentColor" opacity="0.8">(cross-repo access)</text>
+
+      <!-- Repositories -->
+      <rect x="50" y="480" width="200" height="80" rx="8" fill="currentColor" opacity="0.05" stroke="currentColor" stroke-width="1.5"/>
+      <text x="150" y="510" text-anchor="middle" font-size="12" font-weight="bold" fill="currentColor">Control Plane</text>
+      <text x="150" y="527" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.7">tdealer01-crypto</text>
+      <text x="150" y="542" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.7">-dsg-control-plane</text>
+      <line x1="150" y1="560" x2="150" y2="300" stroke="currentColor" stroke-width="1.5" stroke-dasharray="5,5"/>
+
+      <rect x="300" y="480" width="200" height="80" rx="8" fill="currentColor" opacity="0.05" stroke="currentColor" stroke-width="1.5"/>
+      <text x="400" y="510" text-anchor="middle" font-size="12" font-weight="bold" fill="currentColor">DSG ONE V1</text>
+      <text x="400" y="527" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.7">dsg-one-v1</text>
+      <text x="400" y="542" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.7">Render (Production)</text>
+      <line x1="400" y1="480" x2="400" y2="300" stroke="currentColor" stroke-width="1.5" stroke-dasharray="5,5"/>
+
+      <rect x="550" y="480" width="200" height="80" rx="8" fill="currentColor" opacity="0.05" stroke="currentColor" stroke-width="1.5"/>
+      <text x="650" y="510" text-anchor="middle" font-size="12" font-weight="bold" fill="currentColor">AGI Simulation</text>
+      <text x="650" y="527" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.7">dsg-agi-simulation</text>
+      <text x="650" y="542" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.7">AI environment</text>
+      <line x1="650" y1="480" x2="650" y2="300" stroke="currentColor" stroke-width="1.5" stroke-dasharray="5,5"/>
+
+      <rect x="800" y="480" width="200" height="80" rx="8" fill="currentColor" opacity="0.05" stroke="currentColor" stroke-width="1.5"/>
+      <text x="900" y="510" text-anchor="middle" font-size="12" font-weight="bold" fill="currentColor">Cinema Proof</text>
+      <text x="900" y="527" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.7">dsg-cinema-proof</text>
+      <text x="900" y="542" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.7">-agent</text>
+      <line x1="900" y1="480" x2="900" y2="300" stroke="currentColor" stroke-width="1.5" stroke-dasharray="5,5"/>
+
+      <rect x="1050" y="480" width="100" height="80" rx="8" fill="currentColor" opacity="0.05" stroke="currentColor" stroke-width="1.5"/>
+      <text x="1100" y="520" text-anchor="middle" font-size="11" fill="currentColor" opacity="0.7">Future</text>
+      <text x="1100" y="535" text-anchor="middle" font-size="11" fill="currentColor" opacity="0.7">Repos</text>
+      <line x1="1050" y1="500" x2="950" y2="300" stroke="currentColor" stroke-width="1.5" stroke-dasharray="5,5"/>
+
+      <!-- Legend -->
+      <text x="50" y="680" font-size="10" fill="currentColor" opacity="0.7">━━ Solid: Direct connection  ╌╌ Dashed: Data flow</text>
+    </svg>
+  </div>
+
+  <!-- Key Monitoring Points -->
+  <div class="grid">
+    <div class="card">
+      <h3>📊 Schema Consistency</h3>
+      <ul class="feature-list">
+        <li>Migration version alignment</li>
+        <li>Table definition validation</li>
+        <li>Index coverage analysis</li>
+        <li>Function signature checks</li>
+        <li>SHA-256 schema hashing</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>📈 Data Sync Health</h3>
+      <ul class="feature-list">
+        <li>8 critical table monitoring</li>
+        <li>Row count tracking</li>
+        <li>Modification timestamps</li>
+        <li>State hash comparison</li>
+        <li>Health score (0-100)</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>🔍 Divergence Detection</h3>
+      <ul class="feature-list">
+        <li>Orphaned records</li>
+        <li>Unscoped org_id fields</li>
+        <li>Missing required fields</li>
+        <li>RLS policy violations</li>
+        <li>FK constraint checks</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>🔐 Cross-Repo Validation</h3>
+      <ul class="feature-list">
+        <li>Service role access</li>
+        <li>Org_id boundary enforcement</li>
+        <li>Table permissions</li>
+        <li>Visibility scope checks</li>
+        <li>Auth user isolation</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- API Diagram -->
+  <div class="diagram-section">
+    <h2>API Request/Response Flow</h2>
+    <svg viewBox="0 0 1000 500" role="img" aria-label="API request and response flow diagram">
+      <!-- Request -->
+      <rect x="50" y="50" width="300" height="100" rx="8" fill="currentColor" opacity="0.08" stroke="currentColor" stroke-width="1.5"/>
+      <text x="200" y="80" text-anchor="middle" font-size="12" font-weight="bold" fill="currentColor">Client Request</text>
+      <text x="200" y="100" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.8">GET /api/.../data-sync</text>
+      <text x="200" y="117" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.8">?check=full|metrics|...</text>
+      <text x="200" y="134" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.8">Bearer Token</text>
+
+      <!-- Arrow 1 -->
+      <path d="M 350 100 L 400 100" stroke="currentColor" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+      <text x="375" y="90" text-anchor="middle" font-size="9" fill="currentColor" opacity="0.7">auth</text>
+
+      <!-- Processing -->
+      <rect x="400" y="50" width="300" height="100" rx="8" fill="currentColor" opacity="0.08" stroke="currentColor" stroke-width="1.5"/>
+      <text x="550" y="75" text-anchor="middle" font-size="11" font-weight="bold" fill="currentColor">Server Processing</text>
+      <text x="550" y="92" text-anchor="middle" font-size="9" fill="currentColor" opacity="0.8">1. Auth verification</text>
+      <text x="550" y="107" text-anchor="middle" font-size="9" fill="currentColor" opacity="0.8">2. Parse query parameters</text>
+      <text x="550" y="122" text-anchor="middle" font-size="9" fill="currentColor" opacity="0.8">3. Query Supabase</text>
+      <text x="550" y="137" text-anchor="middle" font-size="9" fill="currentColor" opacity="0.8">4. Process & calculate</text>
+
+      <!-- Arrow 2 -->
+      <path d="M 700 100 L 750 100" stroke="currentColor" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+      <text x="725" y="90" text-anchor="middle" font-size="9" fill="currentColor" opacity="0.7">compute</text>
+
+      <!-- Response -->
+      <rect x="750" y="50" width="200" height="100" rx="8" fill="currentColor" opacity="0.08" stroke="currentColor" stroke-width="1.5"/>
+      <text x="850" y="80" text-anchor="middle" font-size="12" font-weight="bold" fill="currentColor">JSON Response</text>
+      <text x="850" y="100" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.8">200 OK</text>
+      <text x="850" y="117" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.8">{data, health, ...}</text>
+
+      <!-- Bottom flow: Database queries -->
+      <line x1="550" y1="150" x2="550" y2="200" stroke="currentColor" stroke-width="2" stroke-dasharray="3,3"/>
+      <text x="580" y="175" font-size="10" fill="currentColor" opacity="0.7">queries</text>
+
+      <rect x="350" y="200" width="400" height="120" rx="8" fill="currentColor" opacity="0.05" stroke="currentColor" stroke-width="1.5"/>
+      <text x="550" y="230" text-anchor="middle" font-size="11" font-weight="bold" fill="currentColor">Supabase (Org Scoped)</text>
+      <text x="420" y="260" text-anchor="middle" font-size="9" fill="currentColor" opacity="0.8">SELECT COUNT(*)</text>
+      <text x="550" y="260" text-anchor="middle" font-size="9" fill="currentColor" opacity="0.8">FROM critical_tables</text>
+      <text x="700" y="260" text-anchor="middle" font-size="9" fill="currentColor" opacity="0.8">WHERE org_id = ?</text>
+      <text x="550" y="285" text-anchor="middle" font-size="9" fill="currentColor" opacity="0.8">RLS Enforced • Service Role Access</text>
+
+      <!-- SVG Marker for arrow -->
+      <defs>
+        <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+          <polygon points="0 0, 10 3, 0 6" fill="currentColor"/>
+        </marker>
+      </defs>
+    </svg>
+  </div>
+
+  <!-- Monitoring Workflow -->
+  <div class="diagram-section">
+    <h2>Data Sync Verification Workflow</h2>
+    <div class="flow-step">
+      <div class="step-number">1</div>
+      <div class="step-content">
+        <strong>Schema Consistency Check</strong>
+        <p>Verify all repositories use compatible schema versions and migrations are properly applied</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-number">2</div>
+      <div class="step-content">
+        <strong>Monitor Critical Tables</strong>
+        <p>Check row counts, modification timestamps, and data distribution across all 8 critical tables</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-number">3</div>
+      <div class="step-content">
+        <strong>Detect Divergences</strong>
+        <p>Identify orphaned records, unscoped fields, missing required fields, and RLS violations</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-number">4</div>
+      <div class="step-content">
+        <strong>Validate Cross-Repo Access</strong>
+        <p>Confirm service roles work correctly and org_id isolation is enforced across all repositories</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-number">5</div>
+      <div class="step-content">
+        <strong>Calculate Health Score</strong>
+        <p>Generate score (0-100), identify issues, and provide actionable recommendations</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Critical Tables -->
+  <div class="diagram-section">
+    <h2>Critical Tables & Monitoring Status</h2>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Table</th>
+            <th>Purpose</th>
+            <th>Org Scoping</th>
+            <th>RLS</th>
+            <th>Monitoring</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>organizations</strong></td>
+            <td>Tenant root</td>
+            <td><span class="badge badge-info">Root</span></td>
+            <td><span class="badge badge-success">Yes</span></td>
+            <td>Row count</td>
+          </tr>
+          <tr>
+            <td><strong>users</strong></td>
+            <td>Actor identity</td>
+            <td><span class="badge badge-success">org_id</span></td>
+            <td><span class="badge badge-success">Yes</span></td>
+            <td>Count + orphans</td>
+          </tr>
+          <tr>
+            <td><strong>agents</strong></td>
+            <td>Agent definitions</td>
+            <td><span class="badge badge-success">org_id</span></td>
+            <td><span class="badge badge-success">Yes</span></td>
+            <td>Count + sync time</td>
+          </tr>
+          <tr>
+            <td><strong>policies</strong></td>
+            <td>Policy rules</td>
+            <td><span class="badge badge-success">org_id</span></td>
+            <td><span class="badge badge-success">Yes</span></td>
+            <td>Version tracking</td>
+          </tr>
+          <tr>
+            <td><strong>executions</strong></td>
+            <td>Execution records</td>
+            <td><span class="badge badge-success">org_id</span></td>
+            <td><span class="badge badge-success">Yes</span></td>
+            <td>Count + timeline</td>
+          </tr>
+          <tr>
+            <td><strong>audit_logs</strong></td>
+            <td>Audit trail</td>
+            <td><span class="badge badge-success">org_id</span></td>
+            <td><span class="badge badge-success">Yes</span></td>
+            <td>Completeness</td>
+          </tr>
+          <tr>
+            <td><strong>runtime_intents</strong></td>
+            <td>Runtime state</td>
+            <td><span class="badge badge-success">org_id</span></td>
+            <td><span class="badge badge-success">Yes</span></td>
+            <td>Status tracking</td>
+          </tr>
+          <tr>
+            <td><strong>proof_artifacts</strong></td>
+            <td>Proof evidence</td>
+            <td><span class="badge badge-success">org_id</span></td>
+            <td><span class="badge badge-success">Yes</span></td>
+            <td>Integrity hash</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Quick Reference -->
+  <div class="grid">
+    <div class="card">
+      <h3>Quick Start Commands</h3>
+      <div class="code-block">
+# Verify schema consistency
+npm run verify:schema-consistency
+
+# Monitor health (generates report)
+npm run monitor:health
+
+# Check for divergences
+npm run check:divergences
+
+# Validate cross-repo
+npm run validate:cross-repo
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Daily Monitoring Checklist</h3>
+      <ul class="feature-list">
+        <li>Health score > 90</li>
+        <li>Zero critical divergences</li>
+        <li>All tables synced</li>
+        <li>No orphaned records</li>
+        <li>RLS policies enforced</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>DSG Unified Data Monitoring System | Version 1.0.0 | Last Updated 2026-08-17</p>
+    <p>Schema Consistency & Data Sync Monitoring for 4 Repositories on Single Unified Supabase Instance</p>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,56 @@
+{
+  "name": "dsg-unified-data-monitoring",
+  "version": "1.0.0",
+  "description": "Unified data monitoring system for DSG repositories with schema consistency verification and data sync health monitoring",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "dev": "ts-node src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "verify:schema-consistency": "ts-node scripts/verify-schema-consistency.ts",
+    "monitor:health": "ts-node scripts/monitor-data-sync.ts",
+    "check:divergences": "ts-node scripts/check-divergences.ts",
+    "validate:cross-repo": "ts-node scripts/validate-cross-repo.ts",
+    "health:check": "bash scripts/health-check.sh",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit",
+    "docker:build": "docker build -f docker/Dockerfile -t dsg-unified-monitoring .",
+    "docker:up": "docker-compose -f docker/docker-compose.yml up",
+    "docker:down": "docker-compose -f docker/docker-compose.yml down"
+  },
+  "keywords": [
+    "dsg",
+    "monitoring",
+    "schema-consistency",
+    "data-sync",
+    "supabase",
+    "unified-database"
+  ],
+  "author": "DSG Team",
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "crypto": "^1.0.3",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "typescript": "^5.3.3"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/jest": "^29.5.11",
+    "@types/node": "^20.10.6",
+    "@typescript-eslint/eslint-plugin": "^6.17.0",
+    "@typescript-eslint/parser": "^6.17.0",
+    "eslint": "^8.56.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "ts-node": "^10.9.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
