@@ -1,0 +1,84 @@
+name: Deploy Monitoring to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to production
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          echo "Deploying DSG Unified Monitoring to ${{ github.event.inputs.environment }}..."
+
+          # Example deployment via SSH
+          mkdir -p ~/.ssh
+          echo "$DEPLOY_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+          ssh -i ~/.ssh/deploy_key "$DEPLOY_USER@$DEPLOY_HOST" << 'EOF'
+            cd /opt/dsg-unified-monitoring
+            git pull origin master
+            docker compose -f docker/docker-compose.yml pull
+            docker compose -f docker/docker-compose.yml up -d
+            docker compose -f docker/docker-compose.yml exec -T monitoring npm run verify:schema-consistency
+          EOF
+
+      - name: Verify deployment health
+        env:
+          MONITORING_URL: ${{ secrets.PRODUCTION_URL }}
+          X_ORG_ID: ${{ secrets.MONITORING_ORG_ID }}
+          API_KEY: ${{ secrets.MONITORING_API_KEY }}
+        run: |
+          echo "Verifying deployment health..."
+
+          sleep 10  # Wait for services to start
+
+          curl -X GET \
+            -H "Authorization: Bearer $API_KEY" \
+            -H "x-org-id: $X_ORG_ID" \
+            "$MONITORING_URL/api/dsg/v1/monitoring/data-sync?check=full" \
+            -o health-report.json
+
+          HEALTH=$(jq '.data.sync_report.health_score' health-report.json)
+          echo "Health Score: $HEALTH"
+
+          if (( HEALTH < 80 )); then
+            echo "WARNING: Post-deployment health check failed"
+            exit 1
+          fi
+
+      - name: Notify deployment
+        if: always()
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          STATUS=$(if [ $? -eq 0 ]; then echo "✅ SUCCESS"; else echo "❌ FAILED"; fi)
+          curl -X POST $SLACK_WEBHOOK \
+            -H 'Content-Type: application/json' \
+            -d "{
+              \"text\": \"$STATUS - DSG Monitoring deployed to ${{ github.event.inputs.environment }}\",
+              \"attachments\": [{
+                \"color\": \"$(if [ $? -eq 0 ]; then echo 'good'; else echo 'danger'; fi)\",
+                \"text\": \"Commit: ${{ github.sha }}\"
+              }]
+            }"

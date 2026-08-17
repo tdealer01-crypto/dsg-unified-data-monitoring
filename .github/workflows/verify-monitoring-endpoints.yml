@@ -1,0 +1,77 @@
+name: Verify Monitoring Endpoints
+
+on:
+  schedule:
+    - cron: '*/30 * * * *' # Every 30 minutes
+  workflow_dispatch:
+
+jobs:
+  verify-endpoints:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify health endpoint
+        env:
+          MONITORING_URL: ${{ secrets.PRODUCTION_URL }}
+          X_ORG_ID: ${{ secrets.MONITORING_ORG_ID }}
+          API_KEY: ${{ secrets.MONITORING_API_KEY }}
+        run: |
+          echo "Testing monitoring endpoints..."
+
+          # Test full health check
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X GET \
+            -H "Authorization: Bearer $API_KEY" \
+            -H "x-org-id: $X_ORG_ID" \
+            "$MONITORING_URL/api/dsg/v1/monitoring/data-sync?check=full")
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n-1)
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "ERROR: Full health check returned HTTP $HTTP_CODE"
+            echo "$BODY"
+            exit 1
+          fi
+
+          echo "Full health check OK"
+          echo "$BODY" | jq .
+
+      - name: Verify metrics endpoint
+        env:
+          MONITORING_URL: ${{ secrets.PRODUCTION_URL }}
+          X_ORG_ID: ${{ secrets.MONITORING_ORG_ID }}
+          API_KEY: ${{ secrets.MONITORING_API_KEY }}
+        run: |
+          curl -X GET \
+            -H "Authorization: Bearer $API_KEY" \
+            -H "x-org-id: $X_ORG_ID" \
+            "$MONITORING_URL/api/dsg/v1/monitoring/data-sync?check=metrics" \
+            | jq '.data.metrics | length'
+
+      - name: Verify cross-repo consistency
+        env:
+          MONITORING_URL: ${{ secrets.PRODUCTION_URL }}
+          X_ORG_ID: ${{ secrets.MONITORING_ORG_ID }}
+          API_KEY: ${{ secrets.MONITORING_API_KEY }}
+        run: |
+          curl -X GET \
+            -H "Authorization: Bearer $API_KEY" \
+            -H "x-org-id: $X_ORG_ID" \
+            "$MONITORING_URL/api/dsg/v1/monitoring/data-sync?check=cross-repo" \
+            | jq '.data.consistent'
+
+      - name: Alert on failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -X POST $SLACK_WEBHOOK \
+            -H 'Content-Type: application/json' \
+            -d '{
+              "text": "🚨 Monitoring endpoint verification FAILED",
+              "attachments": [{
+                "color": "danger",
+                "text": "Check monitoring service health"
+              }]
+            }'
