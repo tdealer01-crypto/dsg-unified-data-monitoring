@@ -1,0 +1,49 @@
+version: '3.9'
+
+services:
+  monitoring:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - API_PORT=3000
+      - API_HOST=0.0.0.0
+      - MONITORING_CHECK_INTERVAL=${MONITORING_CHECK_INTERVAL:-300000}
+      - HEALTH_CHECK_INTERVAL=${HEALTH_CHECK_INTERVAL:-600000}
+      - DIVERGENCE_CHECK_INTERVAL=${DIVERGENCE_CHECK_INTERVAL:-900000}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - ENABLE_SCHEMA_VALIDATION=${ENABLE_SCHEMA_VALIDATION:-true}
+      - ENABLE_DATA_SYNC_MONITORING=${ENABLE_DATA_SYNC_MONITORING:-true}
+      - ENABLE_HEALTH_CHECKS=${ENABLE_HEALTH_CHECKS:-true}
+      - ENABLE_CROSS_REPO_VALIDATION=${ENABLE_CROSS_REPO_VALIDATION:-true}
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/api/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Prometheus for metrics scraping
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    depends_on:
+      - monitoring
+    restart: unless-stopped
+
+volumes:
+  prometheus_data:
