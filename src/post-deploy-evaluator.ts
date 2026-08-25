@@ -1,6 +1,8 @@
 import crypto from 'node:crypto';
 import type { CheckResult, EvidenceRef, MonitorStatus } from './types';
 
+export const POST_DEPLOY_EVALUATION_SCHEMA_VERSION = 'dsg-post-deploy-evaluation-v1' as const;
+
 export interface PerformanceMetrics {
   successRate: number;
   latencyP99Ms: number;
@@ -38,6 +40,7 @@ export interface MetricDelta {
 }
 
 export interface PostDeployEvaluationData {
+  schemaVersion: typeof POST_DEPLOY_EVALUATION_SCHEMA_VERSION;
   baselineCommit: string;
   candidateCommit: string;
   deploymentId: string;
@@ -74,7 +77,7 @@ function validMetricRanges(metrics: PerformanceMetrics): boolean {
 
 function stableEvidenceHash(input: PostDeployEvaluationInput): string {
   const canonical = {
-    schemaVersion: 'dsg-post-deploy-evaluation-v1',
+    schemaVersion: POST_DEPLOY_EVALUATION_SCHEMA_VERSION,
     baselineCommit: input.baselineCommit,
     candidateCommit: input.candidateCommit,
     deploymentId: input.deploymentId,
@@ -93,7 +96,7 @@ function result(
   reason: string,
   nextAction: string | null,
   input: PostDeployEvaluationInput,
-  data: Omit<PostDeployEvaluationData, 'evidenceHash' | 'monitoringAuthority' | 'executionAuthority'>,
+  data: Omit<PostDeployEvaluationData, 'schemaVersion' | 'evidenceHash' | 'monitoringAuthority' | 'executionAuthority'>,
 ): CheckResult<PostDeployEvaluationData> {
   const evidenceHash = stableEvidenceHash(input);
   const evidence: EvidenceRef[] = [{
@@ -101,7 +104,7 @@ function result(
     uri: `dsg-monitoring://post-deploy/${encodeURIComponent(input.deploymentId)}`,
     observedAt: input.observedAt,
     details: {
-      schemaVersion: 'dsg-post-deploy-evaluation-v1',
+      schemaVersion: POST_DEPLOY_EVALUATION_SCHEMA_VERSION,
       baselineCommit: input.baselineCommit,
       candidateCommit: input.candidateCommit,
       evidenceHash,
@@ -113,6 +116,7 @@ function result(
     reason,
     nextAction,
     data: {
+      schemaVersion: POST_DEPLOY_EVALUATION_SCHEMA_VERSION,
       ...data,
       evidenceHash,
       monitoringAuthority: 'OBSERVATION_ONLY',
