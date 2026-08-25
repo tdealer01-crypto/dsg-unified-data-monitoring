@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DSG Unified Data Monitoring — Closed-Loop Architecture</title>
+  <style>
+    :root{color-scheme:dark;--bg:#07100d;--panel:#0b1713;--line:#25483a;--text:#e9f7f0;--muted:#9fc4b2;--observe:#62d99d;--review:#ffd166;--block:#ff6b7a;--control:#73a9ff;--sim:#b68cff}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% -10%,#153d31 0,#091611 32%,var(--bg) 72%);color:var(--text);font:14px/1.55 Inter,system-ui,sans-serif;min-height:100vh}
+    header,main{max-width:1280px;margin:auto;padding-left:22px;padding-right:22px}header{padding-top:38px;padding-bottom:16px}h1{font-size:clamp(28px,4vw,50px);margin:0 0 8px;letter-spacing:-.04em}p{color:var(--muted)}.badges{display:flex;gap:8px;flex-wrap:wrap}.badge{padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:#0a1512}.scene-wrap{margin-top:20px;overflow:auto;border:1px solid var(--line);border-radius:20px;padding:44px 16px 68px;background:#07110ddd;box-shadow:0 30px 80px #0008 inset}.scene{min-width:1080px;perspective:1400px;transform-style:preserve-3d;transition:.12s}.row{display:grid;grid-template-columns:repeat(5,1fr);gap:22px;margin:22px 0;transform-style:preserve-3d}.node{min-height:130px;padding:17px;border:1px solid #315c49;border-radius:14px;background:linear-gradient(145deg,#10251d,#09150f);transform:translateZ(var(--z,0));box-shadow:0 13px 0 #06100c,0 22px 34px #0008;transition:.18s}.node:hover{transform:translateZ(calc(var(--z,0px) + 15px)) translateY(-4px)}.node h3{margin:0 0 7px;font-size:15px}.node p{font-size:12px;margin:0}.state{margin-top:10px;font-size:11px;font-weight:800;letter-spacing:.04em}.observe{border-color:#397b5e}.control{border-color:#3d6793}.sim{border-color:#6d4e91}.warn{border-color:#8c6a32}.block{border-color:#843b46}.arrow{text-align:center;font-size:28px;color:#5e9b80;margin:-8px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}.card{border:1px solid var(--line);border-radius:14px;padding:16px;background:#0b1713}.card h3{margin:0 0 8px}section{margin-top:34px}table{width:100%;border-collapse:collapse;background:#09130f}th,td{padding:11px;border-bottom:1px solid #1d392d;text-align:left;vertical-align:top}th{background:#0e1d17}.ok{color:var(--observe)}.review{color:var(--review)}.bad{color:var(--block)}code{background:#10221a;border:1px solid #224737;padding:2px 5px;border-radius:5px;color:#d9fff0}footer{padding:30px 0 55px;color:#739987;font-size:12px}
+  </style>
+</head>
+<body>
+<header>
+  <h1>DSG Observed‑Truth Feedback Layer</h1>
+  <p>Monitoring measures the real deployed system and emits evidence. It never grants itself promotion or production mutation authority.</p>
+  <div class="badges"><span class="badge ok">Authority: OBSERVATION_ONLY</span><span class="badge">Execution: DSG_CONTROL_PLANE</span><span class="badge review">Neutral → HOLD_REVIEW</span><span class="badge bad">Regression → ROLLBACK_RECOMMENDED</span></div>
+</header>
+<main>
+  <div class="scene-wrap">
+    <div class="scene" id="scene">
+      <div class="row">
+        <article class="node sim" style="--z:12px"><h3>1 · AGI Candidate Pool</h3><p>Only candidates that already beat simulation baseline admission rules reach governed review.</p><div class="state">SIMULATION_ONLY</div></article>
+        <article class="node control" style="--z:28px"><h3>2 · Cinema + Control Plane</h3><p>Raw evidence verification and canonical ALLOW/BLOCK happen outside Monitoring.</p><div class="state">PROMOTION AUTHORITY</div></article>
+        <article class="node control" style="--z:42px"><h3>3 · Batch Merge</h3><p>Several approved candidates may be merged as one coherent release batch.</p><div class="state">PROMOTION RECEIPT REQUIRED</div></article>
+        <article class="node warn" style="--z:28px"><h3>4 · One Deployment</h3><p>Deployment adapter executes once for the approved batch.</p><div class="state">PROVIDER BINDING REQUIRED</div></article>
+        <article class="node observe" style="--z:12px"><h3>5 · Canary Workload</h3><p>Health, readiness, sample count, traffic share, and real performance metrics are collected.</p><div class="state">LIVE EVIDENCE</div></article>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="row">
+        <article class="node observe" style="--z:18px"><h3>6 · Database Observation</h3><p>Critical table counts and missing org bindings are observed without pretending service-role access proves RLS.</p><div class="state ok">OBSERVED TRUTH</div></article>
+        <article class="node observe" style="--z:34px"><h3>7 · Repository Ref Observation</h3><p>Canonical repository refs/SHAs are recorded so evidence is tied to known system state.</p><div class="state ok">COMMIT VISIBILITY</div></article>
+        <article class="node observe" style="--z:52px"><h3>8 · Post‑Deploy Evaluator</h3><p>Baseline and canary metrics are compared deterministically with protected regression rules.</p><div class="state ok">SHA‑256 EVIDENCE HASH</div></article>
+        <article class="node block" style="--z:34px"><h3>9A · Regression</h3><p>Health/readiness failure or protected metric regression returns BLOCK.</p><div class="state bad">ROLLBACK_RECOMMENDED</div></article>
+        <article class="node warn" style="--z:18px"><h3>9B · Neutral / Insufficient</h3><p>No regression but no verified gain, or insufficient canary evidence, returns REVIEW.</p><div class="state review">HOLD_REVIEW</div></article>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="row">
+        <article class="node observe" style="--z:18px"><h3>10 · Verified Improvement</h3><p>No protected regression + sufficient evidence + at least one real improvement.</p><div class="state ok">ACCEPT_NEXT_BASELINE</div></article>
+        <article class="node control" style="--z:36px"><h3>11 · Control Plane Action</h3><p>Consumes Monitoring evidence and performs rollback or baseline promotion under approved authority.</p><div class="state">EXECUTION AUTHORITY</div></article>
+        <article class="node sim" style="--z:52px"><h3>12 · Measured New Baseline</h3><p>Only a Control Plane committed measured baseline feeds the next AGI simulation cycle.</p><div class="state">CLOSED LOOP</div></article>
+        <article class="node observe" style="--z:36px"><h3>13 · Continuous Observation</h3><p>Monitoring continues watching data integrity and performance after promotion.</p><div class="state ok">NO SELF‑AUTHORITY</div></article>
+        <article class="node control" style="--z:18px"><h3>14 · Next Evolution Round</h3><p>Simulation searches again against measured production truth rather than simulated assumptions alone.</p><div class="state">REPEAT</div></article>
+      </div>
+    </div>
+  </div>
+
+  <section><h2>Post-deploy decision contract</h2><div class="grid">
+    <div class="card"><h3 class="bad">BLOCK</h3><p>Health/readiness failure, invalid binding/evidence, or protected metric regression. Monitoring emits <code>ROLLBACK_RECOMMENDED</code>; it does not execute rollback.</p></div>
+    <div class="card"><h3 class="review">REVIEW</h3><p>Evidence is insufficient or the deployment is neutral. Current baseline remains authoritative.</p></div>
+    <div class="card"><h3 class="ok">PASS</h3><p>At least one metric improves, no protected metric regresses, and canary evidence is sufficient. Returns <code>nextBaselineEligible=true</code>.</p></div>
+  </div></section>
+
+  <section><h2>Protected production metrics</h2><table><thead><tr><th>Metric</th><th>Allowed direction</th><th>Regression response</th></tr></thead><tbody>
+    <tr><td>Success rate</td><td>Same or higher</td><td>BLOCK</td></tr>
+    <tr><td>P99 latency</td><td>Same or lower</td><td>BLOCK</td></tr>
+    <tr><td>Error rate</td><td>Same or lower</td><td>BLOCK</td></tr>
+    <tr><td>Throughput</td><td>Same or higher</td><td>BLOCK</td></tr>
+    <tr><td>Cost / success</td><td>Same or lower</td><td>BLOCK</td></tr>
+    <tr><td>Audit completeness</td><td>Same or higher</td><td>BLOCK</td></tr>
+    <tr><td>Health + readiness</td><td>Both must pass</td><td>BLOCK</td></tr>
+  </tbody></table></section>
+
+  <footer>Static self-contained HTML · no remote scripts/assets · DSG Unified Data Monitoring</footer>
+</main>
+<script>
+const wrap=document.querySelector('.scene-wrap'),scene=document.getElementById('scene');
+wrap.addEventListener('pointermove',e=>{const r=wrap.getBoundingClientRect();const x=(e.clientX-r.left)/r.width-.5;const y=(e.clientY-r.top)/r.height-.5;scene.style.transform=`rotateX(${y*-3}deg) rotateY(${x*5}deg)`});
+wrap.addEventListener('pointerleave',()=>scene.style.transform='');
+</script>
+</body>
+</html>
