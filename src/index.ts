@@ -4,6 +4,7 @@ import express, { NextFunction, Request, Response } from 'express';
 import { loadConfig } from './config';
 import { checkOrgBindingCompleteness, createAdministrativeClient, observeCriticalTables } from './data-sync-monitor';
 import { observeCanonicalRepositories } from './github-monitor';
+import { forwardPostDeployFeedback } from './control-plane-feedback';
 import { evaluatePostDeployCanary, PerformanceMetrics, PostDeployEvaluationInput } from './post-deploy-evaluator';
 
 function safeEqual(left: string, right: string): boolean {
@@ -42,6 +43,19 @@ function isPostDeployRequest(value: unknown): value is PostDeployRequestBody {
     typeof value.canaryTrafficPercent === 'number' &&
     typeof value.healthPassed === 'boolean' &&
     typeof value.readinessPassed === 'boolean';
+}
+
+interface PostDeployHandoffBody {
+  evaluation: PostDeployRequestBody;
+  promotionReceipt: Record<string, unknown>;
+  deployment: Record<string, unknown>;
+}
+
+function isPostDeployHandoff(value: unknown): value is PostDeployHandoffBody {
+  if (!isRecord(value)) return false;
+  return isPostDeployRequest(value.evaluation) &&
+    isRecord(value.promotionReceipt) &&
+    isRecord(value.deployment);
 }
 
 export function createApp(env: NodeJS.ProcessEnv = process.env) {
@@ -142,6 +156,60 @@ export function createApp(env: NodeJS.ProcessEnv = process.env) {
         productionMutationAuthority: false,
       },
     });
+  });
+
+  app.post('/api/dsg/v1/monitoring/post-deploy/handoff', requireMonitoringAuth, async (req, res) => {
+    const config = res.locals.config as NonNullable<ReturnType<typeof loadConfig>['config']>;
+    if (!isPostDeployHandoff(req.body)) {
+      return res.status(400).json({
+        status: 'BLOCK',
+        reason: 'POST_DEPLOY_HANDOFF_SCHEMA_INVALID',
+        nextAction: 'Submit evaluation, canonical promotionReceipt, and exact deployment binding.',
+      });
+    }
+
+    if (!config.controlPlanePostDeployUrl || !config.controlPlanePostDeploySecret) {
+      return res.status(503).json({
+        status: 'BLOCK',
+        reason: 'CONTROL_PLANE_POST_DEPLOY_BINDING_MISSING',
+        nextAction: 'Bind DSG_CONTROL_PLANE_POST_DEPLOY_URL and DSG_CONTROL_PLANE_POST_DEPLOY_SECRET before claiming a closed feedback loop.',
+      });
+    }
+
+    const evaluation = evaluatePostDeployCanary({
+      ...req.body.evaluation,
+      observedAt: new Date().toISOString(),
+    });
+
+    try {
+      const controlPlane = await forwardPostDeployFeedback(
+        config.controlPlanePostDeployUrl,
+        config.controlPlanePostDeploySecret,
+        {
+          monitoring: evaluation,
+          promotionReceipt: req.body.promotionReceipt,
+          deployment: req.body.deployment,
+        },
+      );
+
+      return res.status(controlPlane.httpStatus).json({
+        status: controlPlane.ok ? 'HANDOFF_ACCEPTED' : 'HANDOFF_BLOCKED',
+        monitoring: evaluation,
+        controlPlane: controlPlane.body,
+        claims: {
+          monitoringAuthority: 'OBSERVATION_ONLY',
+          rollbackExecutedByMonitoring: false,
+          baselineCommittedByMonitoring: false,
+        },
+      });
+    } catch (error) {
+      return res.status(502).json({
+        status: 'BLOCK',
+        reason: 'CONTROL_PLANE_POST_DEPLOY_HANDOFF_FAILED',
+        errorClass: error instanceof Error ? error.message : 'UNKNOWN',
+        monitoring: evaluation,
+      });
+    }
   });
 
   return app;
