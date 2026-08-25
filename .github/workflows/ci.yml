@@ -14,12 +14,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Require committed lockfile
+        run: test -f package-lock.json
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: npm
-      - name: Require committed lockfile
-        run: test -f package-lock.json
       - name: Install exact dependency graph
         run: npm ci
       - name: Lint
