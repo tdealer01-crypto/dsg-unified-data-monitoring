@@ -1,7 +1,7 @@
 export type MonitorStatus = 'PASS' | 'REVIEW' | 'BLOCK' | 'NOT_RUN';
 
 export interface EvidenceRef {
-  kind: 'api_response' | 'database_count' | 'github_ref' | 'configuration';
+  kind: 'api_response' | 'database_count' | 'github_ref' | 'configuration' | 'performance_comparison';
   uri: string;
   observedAt: string;
   details?: Record<string, unknown>;
