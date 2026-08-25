@@ -4,11 +4,44 @@ import express, { NextFunction, Request, Response } from 'express';
 import { loadConfig } from './config';
 import { checkOrgBindingCompleteness, createAdministrativeClient, observeCriticalTables } from './data-sync-monitor';
 import { observeCanonicalRepositories } from './github-monitor';
+import { evaluatePostDeployCanary, PerformanceMetrics, PostDeployEvaluationInput } from './post-deploy-evaluator';
 
 function safeEqual(left: string, right: string): boolean {
   const a = Buffer.from(left);
   const b = Buffer.from(right);
   return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isPerformanceMetrics(value: unknown): value is PerformanceMetrics {
+  if (!isRecord(value)) return false;
+  const keys: Array<keyof PerformanceMetrics> = [
+    'successRate',
+    'latencyP99Ms',
+    'errorRate',
+    'throughputRps',
+    'costPerSuccess',
+    'auditCompleteness',
+  ];
+  return keys.every((key) => typeof value[key] === 'number');
+}
+
+type PostDeployRequestBody = Omit<PostDeployEvaluationInput, 'observedAt'>;
+
+function isPostDeployRequest(value: unknown): value is PostDeployRequestBody {
+  if (!isRecord(value)) return false;
+  return typeof value.baselineCommit === 'string' &&
+    typeof value.candidateCommit === 'string' &&
+    typeof value.deploymentId === 'string' &&
+    isPerformanceMetrics(value.baseline) &&
+    isPerformanceMetrics(value.canary) &&
+    typeof value.sampleCount === 'number' &&
+    typeof value.canaryTrafficPercent === 'number' &&
+    typeof value.healthPassed === 'boolean' &&
+    typeof value.readinessPassed === 'boolean';
 }
 
 export function createApp(env: NodeJS.ProcessEnv = process.env) {
@@ -84,6 +117,30 @@ export function createApp(env: NodeJS.ProcessEnv = process.env) {
       data: { metrics: metrics.data.metrics, passRate: metrics.data.passRate, bindings: bindings.data, crossRepo: repositories.data },
       evidence: [...metrics.evidence, ...bindings.evidence, ...repositories.evidence],
       claims: { rlsVerified: false, productionReady: false },
+    });
+  });
+
+  app.post('/api/dsg/v1/monitoring/post-deploy/evaluate', requireMonitoringAuth, (req, res) => {
+    if (!isPostDeployRequest(req.body)) {
+      return res.status(400).json({
+        status: 'BLOCK',
+        reason: 'POST_DEPLOY_EVIDENCE_SCHEMA_INVALID',
+        nextAction: 'Submit baseline/canary metrics plus commit, deployment, sample, traffic, health, and readiness bindings.',
+      });
+    }
+
+    const evaluation = evaluatePostDeployCanary({
+      ...req.body,
+      observedAt: new Date().toISOString(),
+    });
+
+    return res.status(evaluation.status === 'BLOCK' ? 409 : 200).json({
+      ...evaluation,
+      claims: {
+        rollbackExecuted: false,
+        nextBaselineCommitted: false,
+        productionMutationAuthority: false,
+      },
     });
   });
 
