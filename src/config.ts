@@ -5,6 +5,8 @@ export interface ServiceConfig {
   monitoringOrgId: string;
   monitoringApiKey: string;
   githubToken?: string;
+  controlPlanePostDeployUrl?: string;
+  controlPlanePostDeploySecret?: string;
 }
 
 export type ConfigResult =
@@ -38,6 +40,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ConfigResult {
       monitoringOrgId: env.MONITORING_ORG_ID!,
       monitoringApiKey: env.MONITORING_API_KEY!,
       githubToken: env.DSG_GITHUB_AUTOMATION_TOKEN || env.GITHUB_TOKEN,
+      controlPlanePostDeployUrl: env.DSG_CONTROL_PLANE_POST_DEPLOY_URL,
+      controlPlanePostDeploySecret: env.DSG_CONTROL_PLANE_POST_DEPLOY_SECRET,
     },
   };
 }
