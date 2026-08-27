@@ -1,0 +1,33 @@
+name: Unified Monitoring CI
+
+on:
+  push:
+    branches: [integration/unified-monitoring-e2e]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require committed lockfile
+        run: test -f package-lock.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install exact dependency graph
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Type check
+        run: npm run type-check
+      - name: Unit tests
+        run: npm test
+      - name: Build
+        run: npm run build
+      - name: Docker build
+        run: docker build -t dsg-unified-monitoring:${{ github.sha }} .
