@@ -35,9 +35,9 @@ DSG Unified Data Monitoring
 
 ## Current implementation source
 
-The observed-truth implementation is on branch `integration/unified-monitoring-e2e` and PR #1.
+The observed-truth implementation is canonical on `main`. It was merged by PR #1 (`feat: observed-truth monitoring integration`); the former integration branch is no longer the runtime source of truth.
 
-The repository also contains a separate historical `master` branch with an older monitoring implementation. `main` and `master` do not represent one continuous history. Do **not** merge `master` into `main` blindly; PR #1 intentionally rebuilds the useful monitoring behavior from `main` with fail-closed truth boundaries.
+The repository also contains a separate historical `master` branch with an older monitoring implementation. `main` and `master` do not represent one continuous history. Do **not** merge `master` into `main` blindly; PR #1 intentionally rebuilt the useful monitoring behavior from `main` with fail-closed truth boundaries.
 
 ## Implemented capabilities
 
@@ -195,15 +195,30 @@ The API never claims that rollback was actually executed or that the baseline wa
 
 Required:
 
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `MONITORING_ORG_ID`
-- `MONITORING_API_KEY`
+- `SUPABASE_URL` — API URL of the exact Supabase project whose governance tables are being observed. This is configuration, not a secret.
+- `SUPABASE_SERVICE_ROLE_KEY` — server-side Supabase service-role credential. Store it in Azure Key Vault; never expose it through a `NEXT_PUBLIC_*` setting.
+- `MONITORING_ORG_ID` — an existing `public.organizations.id` from that same Supabase project. Validate the UUID against the live table before deployment; do not invent an ID.
+- `MONITORING_API_KEY` — a high-entropy bearer secret used only by this monitoring API. It is **not issued by Supabase**. Generate/rotate it as a runtime secret in Azure Key Vault and resolve it into the Azure service through Managed Identity.
 
 Optional:
 
-- `DSG_GITHUB_AUTOMATION_TOKEN` — authenticated observation of private canonical repositories.
+- `DSG_GITHUB_AUTOMATION_TOKEN` — authenticated observation of private canonical repositories; keep it in Azure Key Vault when required.
+- `DSG_CONTROL_PLANE_POST_DEPLOY_URL` — canonical HTTPS Control Plane post-deploy feedback endpoint.
+- `DSG_CONTROL_PLANE_POST_DEPLOY_SECRET` — HMAC secret shared only with Control Plane; keep it in Azure Key Vault.
 - `PORT` — HTTP port, default `3000`.
+
+### Secret-manager deployment contract
+
+Production secret values are never committed to this repository and must not be placed in `.env.example`.
+
+1. Create or rotate required secret values in Azure Key Vault through the approved GitHub OIDC bootstrap/rotation identity.
+2. Give the Azure monitoring service Managed Identity only `Key Vault Secrets User` access to the vault.
+3. Bind versionless Key Vault references for each runtime secret (`SUPABASE_SERVICE_ROLE_KEY`, `MONITORING_API_KEY`, and any optional secret that is enabled).
+4. Keep non-secret runtime settings such as `SUPABASE_URL`, `MONITORING_ORG_ID`, endpoint URLs, and `PORT` as ordinary Azure App Settings unless policy requires a stricter store.
+5. Require every Key Vault reference status to be `Resolved` before readiness can be considered configured.
+6. Verify `/api/readiness` and then run authenticated live monitoring probes. Configuration readback alone is not evidence that Supabase connectivity, canonical repo observation, or the closed post-deploy loop passed.
+
+The Control Plane runbook linked at the top of this README is the canonical implementation pattern for Key Vault, Managed Identity, and GitHub OIDC authority separation.
 
 ## Quick start
 
@@ -245,12 +260,12 @@ No `|| true`, fake production evidence, or self-issued promotion claim is permit
 | Canonical repo/ref observation | **IMPLEMENTED / CI VERIFIED checkpoint** | Visibility failures return `REVIEW`. |
 | `/api/health` and `/api/readiness` | **IMPLEMENTED / CI VERIFIED checkpoint** | Readiness fails closed on missing config. |
 | Authenticated data-sync API | **IMPLEMENTED / CI VERIFIED checkpoint** | Bearer auth required. |
-| Post-deploy baseline/canary comparison | **IMPLEMENTED; current CI pending after latest change** | Pure evaluator; no production mutation. |
-| Rollback recommendation signal | **IMPLEMENTED; current CI pending after latest change** | Recommendation only; Control Plane executes. |
-| Next-baseline evidence + SHA-256 binding | **IMPLEMENTED; current CI pending after latest change** | Eligibility evidence only; Control Plane commits baseline. |
+| Post-deploy baseline/canary comparison | **IMPLEMENTED / CI VERIFIED checkpoint** | Pure evaluator; no production mutation. |
+| Rollback recommendation signal | **IMPLEMENTED / CI VERIFIED checkpoint** | Recommendation only; Control Plane executes. |
+| Next-baseline evidence + SHA-256 binding | **IMPLEMENTED / CI VERIFIED checkpoint** | Eligibility evidence only; Control Plane commits baseline. |
 | Live Supabase evidence | **RUNTIME BINDING REQUIRED** | Must be observed against the real configured instance. |
 | Tenant-isolation/RLS proof | **NOT YET VERIFIED** | Requires non-service-role test identity/evidence. |
-| Production deployment | **OUTSIDE AUTHORITY / BLOCKED WHILE PROVIDER UNBOUND** | This repo never selects or executes deployment. |
+| Production deployment | **OUTSIDE AUTHORITY; AZURE RUNTIME BINDING REQUIRED SEPARATELY** | This repo observes only; deployment authority remains outside Monitoring. |
 
 ## Result states
 
@@ -294,14 +309,14 @@ This repository is therefore the **observed-truth feedback layer** of the evolut
 
 ## Current promotion limits
 
-This integration branch does **not** claim:
+`main` does **not** claim:
 
 - production readiness;
 - live Supabase proof before runtime binding;
 - tenant RLS enforcement from a service-role client;
 - actual rollback merely because rollback is recommended;
 - a committed next baseline merely because it is eligible;
-- deployment while the system production provider is unbound.
+- deployment merely because Azure is the declared production platform.
 
 ## License
 
